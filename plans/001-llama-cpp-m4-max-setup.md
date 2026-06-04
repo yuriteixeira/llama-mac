@@ -100,7 +100,7 @@ With 64 GB unified memory, macOS + desktop use ~4–6 GB, leaving **~58 GB for m
 
 ## Phase 3 — Download Models
 
-### Option A — `huggingface-cli` (recommended)
+### Option A — `hf` CLI (recommended)
 
 Resumable, handles gated models (auth), verifies file integrity automatically.
 
@@ -108,28 +108,28 @@ Resumable, handles gated models (auth), verifies file integrity automatically.
 # Install HF CLI (one-time)
 pip install huggingface-hub
 
-# ★ Top pick: Qwen3.6-27B Q5_K_M (if present in the repo)
-huggingface-cli download \
+# ★ Top pick: Qwen3.6-27B Q5_K_M
+hf download \
   unsloth/Qwen3.6-27B-GGUF \
   Qwen3.6-27B-Q5_K_M.gguf \
   --local-dir models/
 
 # Fallback / faster: Qwen3.6-27B Q4_K_M
-huggingface-cli download \
+hf download \
   unsloth/Qwen3.6-27B-GGUF \
   Qwen3.6-27B-Q4_K_M.gguf \
   --local-dir models/
 
 # Qwen3.6-35B-A3B (MoE variant — fast inference)
-huggingface-cli download \
+hf download \
   unsloth/Qwen3.6-35B-A3B-GGUF \
-  Qwen3.6-35B-A3B-Q4_K_M.gguf \
+  Qwen3.6-35B-A3B-UD-Q4_K_M.gguf \
   --local-dir models/
 
-# Gemma 4 26B-A4B (native function calling)
-huggingface-cli download \
-  google/gemma-4-26B-A4B-GGUF \
-  gemma-4-26B-A4B-Q4_K_M.gguf \
+# Gemma 4 26B-A4B it (native function calling)
+hf download \
+  ggml-org/gemma-4-26B-A4B-it-GGUF \
+  gemma-4-26B-A4B-it-Q4_K_M.gguf \
   --local-dir models/
 ```
 
@@ -151,11 +151,11 @@ wget -c "https://huggingface.co/unsloth/Qwen3.6-27B-GGUF/resolve/main/Qwen3.6-27
   -P models/
 
 # Qwen3.6-35B-A3B (MoE)
-wget -c "https://huggingface.co/unsloth/Qwen3.6-35B-A3B-GGUF/resolve/main/Qwen3.6-35B-A3B-Q4_K_M.gguf" \
+wget -c "https://huggingface.co/unsloth/Qwen3.6-35B-A3B-GGUF/resolve/main/Qwen3.6-35B-A3B-UD-Q4_K_M.gguf" \
   -P models/
 
-# Gemma 4 26B-A4B
-wget -c "https://huggingface.co/google/gemma-4-26B-A4B-GGUF/resolve/main/gemma-4-26B-A4B-Q4_K_M.gguf" \
+# Gemma 4 26B-A4B it
+wget -c "https://huggingface.co/ggml-org/gemma-4-26B-A4B-it-GGUF/resolve/main/gemma-4-26B-A4B-it-Q4_K_M.gguf" \
   -P models/
 ```
 
@@ -190,7 +190,8 @@ The script runs:
   --models-preset ./llama-models.ini \
   --models-max 1 \
   --parallel 1 \
-  --host 0.0.0.0
+  --host 0.0.0.0 \
+  --port 12345
 ```
 
 `llama-models.ini`:
@@ -209,6 +210,14 @@ load-on-startup = false
 [qwen3.6-27b-q4]
 model = ./models/Qwen3.6-27B-Q4_K_M.gguf
 load-on-startup = false
+
+[qwen3.6-35b-a3b-q4]
+model = ./models/Qwen3.6-35B-A3B-UD-Q4_K_M.gguf
+load-on-startup = false
+
+[gemma-4-26b-a4b-it-q4]
+model = ./models/gemma-4-26B-A4B-it-Q4_K_M.gguf
+load-on-startup = false
 ```
 
 ### Key flags explained
@@ -219,6 +228,7 @@ load-on-startup = false
 | `--models-max`    | `1`                    | Allow only one model to be loaded at a time               |
 | `--parallel`      | `1`                    | Single-user setup; avoids reserving extra parallel slots  |
 | `--host`          | `0.0.0.0`              | Expose the server to other tools/devices on the network   |
+| `--port`          | `12345`                | OpenAI-compatible API port                                |
 | `n-gpu-layers`    | `all`                  | Explicitly offload all possible layers to Metal GPU       |
 | `c`               | `32768`                | Context window; good default for agentic coding           |
 
@@ -294,7 +304,7 @@ For an agentic coding daily-driver, start with **two models**:
 2. **Fallback / faster primary** — `Qwen3.6-27B Q4_K_M` — same model, faster and lighter
 3. **Alternative fast agent** — `Gemma 4 26B-A4B Q4_K_M` — April 2026; Google's MoE with native function-calling tokens; only 4B active = very fast; 256K ctx
 
-Run via `llama-server`, then point your coding agent (Aider, Continue.dev, Cline, qwen-code, or Open WebUI) at `http://localhost:8080`. Select a model by request name, e.g. `qwen3.6-27b-q5` or `qwen3.6-27b-q4`.
+Run via `llama-server`, then point your coding agent (Aider, Continue.dev, Cline, qwen-code, or Open WebUI) at `http://localhost:12345`. Select a model by request name, e.g. `qwen3.6-27b-q5` or `qwen3.6-27b-q4`.
 
 ```bash
 # Serve preset-based router; dynamically loads one model at a time
@@ -380,7 +390,7 @@ cmake --build llama.cpp/build --config Release -j16
 # 2. Download the top agentic coding model to root ./models
 mkdir -p models
 pip install huggingface-hub
-huggingface-cli download unsloth/Qwen3.6-27B-GGUF \
+hf download unsloth/Qwen3.6-27B-GGUF \
   Qwen3.6-27B-Q5_K_M.gguf --local-dir models/
 
 # 3. Create model presets

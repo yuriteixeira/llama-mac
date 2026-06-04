@@ -7,4 +7,5 @@ exec "${ROOT_DIR}/llama.cpp/build/bin/llama-server" \
   --models-preset "${ROOT_DIR}/llama-models.ini" \
   --models-max 1 \
   --parallel 1 \
-  --host 0.0.0.0
+  --host 0.0.0.0 \
+  --port 12345
