@@ -12,7 +12,5 @@ export DYLD_LIBRARY_PATH="${LLAMA_BIN_DIR}${DYLD_LIBRARY_PATH:+:${DYLD_LIBRARY_P
 exec "${LLAMA_BIN_DIR}/llama-server" \
   --models-preset "${ROOT_DIR}/llama-models.ini" \
   --models-max 1 \
-  --parallel 1 \
-  --kv-unified \
   --host 0.0.0.0 \
   --port 12345

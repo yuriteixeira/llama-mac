@@ -189,11 +189,11 @@ The script runs:
 ./llama.cpp/build/bin/llama-server \
   --models-preset ./llama-models.ini \
   --models-max 1 \
-  --parallel 1 \
-  --kv-unified \
   --host 0.0.0.0 \
   --port 12345
 ```
+
+All model-performance settings live in the `[*]` (global) section of the INI file. The router cascades these to child processes via `LLAMA_ARG_*` environment variables — CLI args are kept minimal (router control only).
 
 `llama-models.ini`:
 
@@ -208,6 +208,16 @@ n-gpu-layers = all
 cache-type-k = q8_0
 cache-type-v = q8_0
 load-on-startup = false
+; Apple Silicon performance: Metal Flash Attention + prefix caching + mlock.
+fa = on
+mlock = on
+cache-reuse = 256
+b = 2048
+ub = 2048
+prio = 2
+; Unified KV cache (shared pool across slots) + single parallel slot.
+kvu = on
+np = 1
 
 ; Agent-facing Qwen presets: disable Qwen thinking/reasoning so tool calls
 ; and visible assistant content are not starved by hidden reasoning tokens.
@@ -249,16 +259,23 @@ model = ./models/gemma-4-26B-A4B-it-Q4_K_M.gguf
 | ----------------- | ---------------------- | --------------------------------------------------------- |
 | `--models-preset` | `./llama-models.ini`   | Defines available models and shared runtime settings      |
 | `--models-max`    | `1`                    | Allow only one model to be loaded at a time               |
-| `--parallel`      | `1`                    | Single-user setup; avoids reserving extra parallel slots  |
-| `--kv-unified`    | enabled                | Uses one shared KV buffer for slots; required for idle-slot prompt-cache behavior when `--parallel` is explicit |
 | `--host`          | `0.0.0.0`              | Expose the server to other tools/devices on the network   |
 | `--port`          | `12345`                | OpenAI-compatible API port                                |
 | `n-gpu-layers`    | `all`                  | Explicitly offload all possible layers to Metal GPU       |
 | `c`               | `65536`                | Context window; better default for repo-scale agentic coding on 64 GB M4 Max |
 | `cache-type-k/v`  | `q8_0`                 | Best default KV cache strategy: near-F16 quality with roughly half the KV RAM |
+| `fa`              | `on`                   | Metal Flash Attention: faster prefill, smaller memory footprint, prerequisite for KV cache quantization |
+| `mlock`           | `on`                   | Lock model in RAM; prevents macOS paging on 64 GB with headroom |
+| `cache-reuse`     | `256`                  | Prefix caching: skips redundant prefill on repeated system prompts (key for agent loops) |
+| `b` / `ub`        | `2048`                 | Batch / unified batch size; recommended default for M4 Max throughput |
+| `prio`            | `2`                    | High thread priority so Metal threads aren't starved by macOS background tasks |
+| `kvu`             | `on`                   | Unified KV cache (shared pool across slots)               |
+| `np`              | `1`                    | Single-user setup; avoids reserving extra parallel slots  |
 | `reasoning` / `reasoning-budget` | `off` / `0` on Qwen 27B agent presets | Prevents Qwen thinking blocks from consuming the completion budget before visible tool calls/content |
 
-`--models-autoload` is enabled by default, so requests dynamically load the requested preset by model name. `--jinja` and `-fa/--flash-attn` are enabled/auto by default in current llama.cpp, so they are intentionally omitted. Reasoning is disabled only in the Qwen 27B agent-facing presets; use the `*-think` aliases for manual chats where you explicitly want thinking mode.
+`--models-autoload` is enabled by default, so requests dynamically load the requested preset by model name. Reasoning is disabled only in the Qwen 27B agent-facing presets; use the `*-think` aliases for manual chats where you explicitly want thinking mode.
+
+> **Why INI `[*]` instead of CLI flags?** The router cascades the global `[*]` section to child processes via `LLAMA_ARG_*` environment variables. This avoids duplication and keeps CLI args reserved for router-level control (`--host`, `--port`, `--models-max`, etc.). CLI args override INI values when both are present, so this is the cleanest single-source-of-truth approach.
 
 ### 4.3 Context Window Budget
 
@@ -296,10 +313,7 @@ On macOS 26 (Tahoe) + M4 Max, the latest llama.cpp master **automatically uses M
 
 ### 5.2 Flash Attention
 
-```bash
-# Flash attention is auto by default; force it only if needed
-./llama.cpp/build/bin/llama-cli -m model.gguf -ngl all -fa on ...
-```
+Flash Attention is enabled via `fa = on` in the `[*]` section of `llama-models.ini`. This enables the Metal Flash Attention kernel: faster prefill at long contexts, smaller memory footprint per token, and a prerequisite for KV cache quantization. Always keep this on for Apple Silicon.
 
 ### 5.3 KV Cache Quantisation (default strategy)
 
@@ -445,7 +459,7 @@ pip install huggingface-hub
 hf download unsloth/Qwen3.6-27B-GGUF \
   Qwen3.6-27B-Q5_K_M.gguf --local-dir models/
 
-# 3. Create model presets
+# 3. Create model presets (performance flags in [*] global section)
 cat > llama-models.ini <<'EOF'
 version = 1
 
@@ -455,6 +469,14 @@ n-gpu-layers = all
 cache-type-k = q8_0
 cache-type-v = q8_0
 load-on-startup = false
+fa = on
+mlock = on
+cache-reuse = 256
+b = 2048
+ub = 2048
+prio = 2
+kvu = on
+np = 1
 
 [qwen3.6-27b-q5_k_m]
 model = ./models/Qwen3.6-27B-Q5_K_M.gguf
@@ -470,7 +492,6 @@ chat-template-kwargs = {"enable_thinking":true}
 EOF
 
 # 4. Run preset-based router; dynamically loads one model at a time.
-# The helper script adds --kv-unified for stable prompt-cache slot behavior.
 ./scripts/run-llama-server.sh
 ```
 
