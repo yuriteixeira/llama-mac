@@ -1,8 +1,8 @@
 # Local llama.cpp Workspace
 
-This repository is a local setup for building and running [`llama.cpp`](./llama.cpp) with local model files, configuration, and helper scripts.
+This repository is a local setup for running [`llama.cpp`](https://github.com/ggml-org/llama.cpp) with local model files, configuration, and helper scripts.
 
-`llama.cpp/` is an upstream dependency kept as a submodule. This README only documents the local workspace around it.
+llama.cpp is installed via **Homebrew** — no submodule, no build from source. This README documents only the local workspace around it.
 
 ## Prerequisites
 
@@ -20,11 +20,11 @@ This repository is a local setup for building and running [`llama.cpp`](./llama.
 Run these steps in order:
 
 ```bash
-# 1. Clone with submodules
-git clone --recursive git@github.com:yuriteixeira/llama-mac.git
+# 1. Clone the repository
+git clone git@github.com:yuriteixeira/llama-mac.git
 cd llama-mac
 
-# 2. Build llama.cpp with Apple Metal GPU support
+# 2. Install llama.cpp via Homebrew (Metal enabled by default)
 ./scripts/build-llama-cpp-metal.sh
 
 # 3. Download models (uses wget by default)
@@ -37,9 +37,11 @@ cd llama-mac
 
 The server exposes an **OpenAI-compatible API** at `http://localhost:12345`.
 
-> **Tip**: Use `JOBS=8` to control the build parallelism on slower machines:
+> **Tip**: If you want the bleeding-edge HEAD version of llama.cpp instead of the
+> latest Homebrew stable tag, install it first:
 > ```bash
-> JOBS=8 ./scripts/build-llama-cpp-metal.sh
+> brew uninstall llama.cpp
+> brew install llama.cpp --HEAD
 > ```
 
 ### Downloaded models
@@ -69,12 +71,10 @@ scripts/
 
 These scripts are local conveniences for:
 
-- building with Apple Metal support
+- installing llama.cpp via Homebrew (Metal enabled by default on Apple Silicon)
 - downloading models
 - running the llama server
 - managing local GGUF model files
-
-Given the model config and script names, this workspace appears set up for local inference on Apple Silicon using Metal GPU acceleration.
 
 ## Local model configuration
 
@@ -84,37 +84,36 @@ Global defaults:
 
 ```ini
 [*]
-c = 32768
+c = 65536
 n-gpu-layers = all
 ```
 
 This means configured models default to:
 
-- `c = 32768`: 32k token context size
+- `c = 65536`: 64k token context size
 - `n-gpu-layers = all`: offload all possible layers to GPU
 
 Example model entry:
 
 ```ini
-[qwen3.6-27b-q5]
-model = ./models/Qwen3.6-27B-Q5_K_M.gguf
-load-on-startup = false
+[fast-detailed-qwen3.6-35b-a3b-q4]
+model = ./models/Qwen3.6-35B-A3B-UD-Q4_K_M.gguf
 ```
 
 Each section gives a model a short alias and points to a GGUF file under `models/`.
 
 ## Architecture
 
-This repository is a thin local orchestration layer around the upstream `llama.cpp` submodule.
+This repository is a thin local orchestration layer around llama.cpp (installed via Homebrew).
 
 ```text
 scripts/ + llama-models.ini
         ↓
 local models in models/
         ↓
-llama.cpp tools/server/runtime
+Homebrew llama.cpp server runtime
 ```
 
-The project-specific pieces are the configuration file, local model storage, and helper scripts. Inference, model loading, server behavior, and backend execution are provided by the `llama.cpp` dependency.
+The project-specific pieces are the configuration file, local model storage, and helper scripts. Inference, model loading, server behavior, and backend execution are provided by the Homebrew `llama.cpp` package.
 
 All workspace paths should be repository-relative so the setup remains portable across machines.

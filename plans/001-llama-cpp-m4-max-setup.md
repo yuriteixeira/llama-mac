@@ -25,33 +25,28 @@ Assuming basedir is `~/Workspaces/local/llama-mac`
 
 ---
 
-## Phase 1 — Build llama.cpp with Metal 4
+## Phase 1 — Install llama.cpp via Homebrew
 
-### 1.1 Initialise submodule
-
-```bash
-git submodule update --init --recursive llama.cpp
-```
-
-### 1.2 Build (Metal-optimised release)
+Homebrew's `llama.cpp` formula enables **Metal by default on Apple Silicon** — no cmake, no submodule, no build from source.
 
 ```bash
-cmake -S llama.cpp -B llama.cpp/build \
-  -DGGML_METAL=ON \
-  -DCMAKE_BUILD_TYPE=Release \
-  -DCMAKE_OSX_ARCHITECTURES=arm64
-cmake --build llama.cpp/build --config Release -j14
+brew install llama.cpp
 ```
 
-> `-DGGML_METAL=ON` enables the Metal compute backend, which on macOS 26+ automatically picks up **Metal 4 Tensor API** optimisations (merged upstream in PR #16634 and refined in #20962).
-> `-j14` saturates all 14 CPU cores for the build.
-
-### 1.3 Verify Metal
+Verify installation:
 
 ```bash
-./llama.cpp/build/bin/llama-cli --version
-./llama.cpp/build/bin/llama-server --list-devices   # should list Apple GPU / Metal device
+llama-cli --version
+llama-server --list-devices   # should list Apple GPU / Metal device
 ```
+
+> On macOS 26+ this version automatically uses **Metal 4 Tensor API** optimisations (PRs #16634, #20962).
+>
+> To get the bleeding-edge HEAD version instead of the latest Homebrew stable tag:
+> ```bash
+> brew uninstall llama.cpp
+> brew install llama.cpp --HEAD
+> ```
 
 ---
 
@@ -168,7 +163,7 @@ wget -c "https://huggingface.co/ggml-org/gemma-4-26B-A4B-it-GGUF/resolve/main/ge
 ### 4.1 CLI (interactive chat)
 
 ```bash
-./llama.cpp/build/bin/llama-cli \
+llama-cli \
   -m models/Qwen3.6-27B-Q5_K_M.gguf \
   -ngl all \
   -c 32768 \
@@ -186,7 +181,7 @@ Run from the repository root:
 The script runs:
 
 ```bash
-./llama.cpp/build/bin/llama-server \
+llama-server \
   --models-preset ./llama-models.ini \
   --models-max 1 \
   --host 0.0.0.0 \
@@ -309,7 +304,7 @@ For Devstral Small 2 24B Q8_0 (~25 GB weights):
 
 ### 5.1 Metal 4 Tensor API (automatic)
 
-On macOS 26 (Tahoe) + M4 Max, the latest llama.cpp master **automatically uses Metal 4 Tensor API** when available. This accelerates prompt processing (prefill) significantly. No extra flags needed — just ensure you're on the latest llama.cpp.
+On macOS 26 (Tahoe) + M4 Max, the latest Homebrew llama.cpp **automatically uses Metal 4 Tensor API** when available. This accelerates prompt processing (prefill) significantly. No extra flags needed — just ensure you're on the latest Homebrew version (or install `llama.cpp --HEAD` for bleeding-edge).
 
 ### 5.2 Flash Attention
 
@@ -320,7 +315,7 @@ Flash Attention is enabled via `fa = on` in the `[*]` section of `llama-models.i
 Use **Q8_0 for both K and V cache by default** on this machine:
 
 ```bash
-./llama.cpp/build/bin/llama-cli -m model.gguf -ngl all \
+llama-cli -m model.gguf -ngl all \
   --cache-type-k q8_0 \
   --cache-type-v q8_0 \
   -c 65536 ...
@@ -448,10 +443,8 @@ launchctl bootout gui/$(id -u)/llama-server
 ## Quick Start (copy-paste)
 
 ```bash
-# 1. Initialise submodule & build
-git submodule update --init --recursive llama.cpp
-cmake -S llama.cpp -B llama.cpp/build -DGGML_METAL=ON -DCMAKE_BUILD_TYPE=Release
-cmake --build llama.cpp/build --config Release -j16
+# 1. Install llama.cpp via Homebrew (Metal enabled by default)
+brew install llama.cpp
 
 # 2. Download the top agentic coding model to root ./models
 mkdir -p models
