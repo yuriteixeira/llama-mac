@@ -190,6 +190,7 @@ The script runs:
   --models-preset ./llama-models.ini \
   --models-max 1 \
   --parallel 1 \
+  --kv-unified \
   --host 0.0.0.0 \
   --port 12345
 ```
@@ -206,22 +207,40 @@ n-gpu-layers = all
 ; Use lower-bit caches only for extreme context/model-fit experiments.
 cache-type-k = q8_0
 cache-type-v = q8_0
-
-[qwen3.6-27b-q5]
-model = ./models/Qwen3.6-27B-Q5_K_M.gguf
 load-on-startup = false
+
+; Agent-facing Qwen presets: disable Qwen thinking/reasoning so tool calls
+; and visible assistant content are not starved by hidden reasoning tokens.
+[qwen3.6-27b-q5_k_m]
+model = ./models/Qwen3.6-27B-Q5_K_M.gguf
+reasoning = off
+reasoning-budget = 0
+chat-template-kwargs = {"enable_thinking":false}
 
 [qwen3.6-27b-q4]
 model = ./models/Qwen3.6-27B-Q4_K_M.gguf
-load-on-startup = false
+reasoning = off
+reasoning-budget = 0
+chat-template-kwargs = {"enable_thinking":false}
+
+; Manual-chat aliases if you explicitly want Qwen thinking mode.
+[qwen3.6-27b-q5_k_m-think]
+model = ./models/Qwen3.6-27B-Q5_K_M.gguf
+reasoning = on
+reasoning-budget = -1
+chat-template-kwargs = {"enable_thinking":true}
+
+[qwen3.6-27b-q4-think]
+model = ./models/Qwen3.6-27B-Q4_K_M.gguf
+reasoning = on
+reasoning-budget = -1
+chat-template-kwargs = {"enable_thinking":true}
 
 [qwen3.6-35b-a3b-q4]
 model = ./models/Qwen3.6-35B-A3B-UD-Q4_K_M.gguf
-load-on-startup = false
 
 [gemma-4-26b-a4b-it-q4]
 model = ./models/gemma-4-26B-A4B-it-Q4_K_M.gguf
-load-on-startup = false
 ```
 
 ### Key flags explained
@@ -231,13 +250,15 @@ load-on-startup = false
 | `--models-preset` | `./llama-models.ini`   | Defines available models and shared runtime settings      |
 | `--models-max`    | `1`                    | Allow only one model to be loaded at a time               |
 | `--parallel`      | `1`                    | Single-user setup; avoids reserving extra parallel slots  |
+| `--kv-unified`    | enabled                | Uses one shared KV buffer for slots; required for idle-slot prompt-cache behavior when `--parallel` is explicit |
 | `--host`          | `0.0.0.0`              | Expose the server to other tools/devices on the network   |
 | `--port`          | `12345`                | OpenAI-compatible API port                                |
 | `n-gpu-layers`    | `all`                  | Explicitly offload all possible layers to Metal GPU       |
 | `c`               | `65536`                | Context window; better default for repo-scale agentic coding on 64 GB M4 Max |
 | `cache-type-k/v`  | `q8_0`                 | Best default KV cache strategy: near-F16 quality with roughly half the KV RAM |
+| `reasoning` / `reasoning-budget` | `off` / `0` on Qwen 27B agent presets | Prevents Qwen thinking blocks from consuming the completion budget before visible tool calls/content |
 
-`--models-autoload` is enabled by default, so requests dynamically load the requested preset by model name. `--jinja` and `-fa/--flash-attn` are enabled/auto by default in current llama.cpp, so they are intentionally omitted.
+`--models-autoload` is enabled by default, so requests dynamically load the requested preset by model name. `--jinja` and `-fa/--flash-attn` are enabled/auto by default in current llama.cpp, so they are intentionally omitted. Reasoning is disabled only in the Qwen 27B agent-facing presets; use the `*-think` aliases for manual chats where you explicitly want thinking mode.
 
 ### 4.3 Context Window Budget
 
@@ -300,7 +321,24 @@ Do **not** make lower-bit caches the normal default (`q4_0`, `q4_1`, `iq4_nl`, `
 
 > Combining flash attention + Q8_0 KV cache is the best daily-driver balance. Drop below Q8_0 only when a specific model/context does not fit.
 
-### 5.4 Thermal Management
+### 5.4 Qwen reasoning strategy for coding agents
+
+For Pi and other tool-heavy coding agents, run Qwen 27B in **non-thinking mode** by default:
+
+```ini
+reasoning = off
+reasoning-budget = 0
+chat-template-kwargs = {"enable_thinking":false}
+```
+
+Why:
+- Agent harnesses already externalize planning via tool calls, file reads, grep/search, and follow-up observations.
+- Qwen thinking blocks can consume the completion budget in hidden `reasoning_content` before visible assistant content or valid tool calls are emitted.
+- This failure can look like the harness/system prompt was “evicted” even when the llama.cpp context is far from full.
+
+Keep separate `*-think` aliases for manual chats where you explicitly want long reasoning. Do not point Pi at those aliases for normal codebase exploration.
+
+### 5.5 Thermal Management
 
 The M4 Max will thermal-throttle under sustained inference. Tips:
 - Use a laptop stand with airflow
@@ -311,13 +349,14 @@ The M4 Max will thermal-throttle under sustained inference. Tips:
 
 ## Phase 6 — Recommended Starter Configuration
 
-For an agentic coding daily-driver, start with **two models**:
+For an agentic coding daily-driver, start with these presets:
 
-1. **Primary agent** — `Qwen3.6-27B Q5_K_M` — April 2026; strong agentic coding/tool-calling reputation; 256K native context; best quality-per-GB
-2. **Fallback / faster primary** — `Qwen3.6-27B Q4_K_M` — same model, faster and lighter
-3. **Alternative fast agent** — `Gemma 4 26B-A4B Q4_K_M` — April 2026; Google's MoE with native function-calling tokens; only 4B active = very fast; 256K ctx
+1. **Primary agent** — `qwen3.6-27b-q5_k_m` — Qwen 27B Q5_K_M with reasoning disabled for reliable Pi/tool use.
+2. **Fallback / faster primary** — `qwen3.6-27b-q4` — same Qwen 27B family, faster/lighter, also with reasoning disabled.
+3. **Manual reasoning aliases** — `qwen3.6-27b-q5_k_m-think` and `qwen3.6-27b-q4-think` — use only for direct chat, not Pi codebase tooling.
+4. **Alternative fast agent** — `gemma-4-26b-a4b-it-q4` — Google's MoE with native function-calling tokens; only 4B active = very fast; 256K ctx.
 
-Run via `llama-server`, then point your coding agent (Aider, Continue.dev, Cline, qwen-code, or Open WebUI) at `http://localhost:12345`. Select a model by request name, e.g. `qwen3.6-27b-q5` or `qwen3.6-27b-q4`.
+Run via `llama-server`, then point your coding agent (Aider, Continue.dev, Cline, qwen-code, or Open WebUI) at `http://localhost:12345`. Select an agent preset by request name, e.g. `qwen3.6-27b-q5_k_m` or `qwen3.6-27b-q4`.
 
 ```bash
 # Serve preset-based router; dynamically loads one model at a time
@@ -415,13 +454,23 @@ c = 65536
 n-gpu-layers = all
 cache-type-k = q8_0
 cache-type-v = q8_0
-
-[qwen3.6-27b-q5]
-model = ./models/Qwen3.6-27B-Q5_K_M.gguf
 load-on-startup = false
+
+[qwen3.6-27b-q5_k_m]
+model = ./models/Qwen3.6-27B-Q5_K_M.gguf
+reasoning = off
+reasoning-budget = 0
+chat-template-kwargs = {"enable_thinking":false}
+
+[qwen3.6-27b-q5_k_m-think]
+model = ./models/Qwen3.6-27B-Q5_K_M.gguf
+reasoning = on
+reasoning-budget = -1
+chat-template-kwargs = {"enable_thinking":true}
 EOF
 
-# 4. Run preset-based router; dynamically loads one model at a time
+# 4. Run preset-based router; dynamically loads one model at a time.
+# The helper script adds --kv-unified for stable prompt-cache slot behavior.
 ./scripts/run-llama-server.sh
 ```
 
