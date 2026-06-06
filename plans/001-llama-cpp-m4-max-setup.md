@@ -21,7 +21,7 @@ Apple Silicon **unified memory** means the full 64 GB is shared between CPU and 
 
 ### Assumptions
 
-Basedir is `/Users/yuriteixeira/Workspaces/local/llama-cpp`
+Assuming basedir is `~/Workspaces/local/llama-mac`
 
 ---
 
@@ -321,7 +321,7 @@ Use a macOS LaunchAgent so the server starts automatically when you log in.
 mkdir -p ~/Library/LaunchAgents logs
 ```
 
-Create `~/Library/LaunchAgents/local.llama-server.plist`:
+Create `~/Library/LaunchAgents/llama-server.plist`:
 
 ```xml
 <?xml version="1.0" encoding="UTF-8"?>
@@ -330,15 +330,15 @@ Create `~/Library/LaunchAgents/local.llama-server.plist`:
 <plist version="1.0">
   <dict>
     <key>Label</key>
-    <string>local.llama-server</string>
+    <string>llama-server</string>
 
     <key>ProgramArguments</key>
     <array>
-      <string>/Users/yuriteixeira/Workspaces/local/llama-cpp/scripts/run-llama-server.sh</string>
+      <string>~/Workspaces/local/llama-mac/scripts/run-llama-server.sh</string>
     </array>
 
     <key>WorkingDirectory</key>
-    <string>/Users/yuriteixeira/Workspaces/local/llama-cpp</string>
+    <string>~/Workspaces/local/llama-mac</string>
 
     <key>RunAtLoad</key>
     <true/>
@@ -347,10 +347,10 @@ Create `~/Library/LaunchAgents/local.llama-server.plist`:
     <true/>
 
     <key>StandardOutPath</key>
-    <string>/Users/yuriteixeira/Workspaces/local/llama-cpp/logs/llama-server.out.log</string>
+    <string>~/Workspaces/local/llama-mac/logs/llama-server.out.log</string>
 
     <key>StandardErrorPath</key>
-    <string>/Users/yuriteixeira/Workspaces/local/llama-cpp/logs/llama-server.err.log</string>
+    <string>~/Workspaces/local/llama-mac/logs/llama-server.err.log</string>
   </dict>
 </plist>
 ```
@@ -358,21 +358,21 @@ Create `~/Library/LaunchAgents/local.llama-server.plist`:
 Enable and start it:
 
 ```bash
-launchctl bootstrap gui/$(id -u) ~/Library/LaunchAgents/local.llama-server.plist
-launchctl enable gui/$(id -u)/local.llama-server
-launchctl kickstart -k gui/$(id -u)/local.llama-server
+launchctl bootstrap gui/$(id -u) ~/Library/LaunchAgents/llama-server.plist
+launchctl enable gui/$(id -u)/llama-server
+launchctl kickstart -k gui/$(id -u)/llama-server
 ```
 
 Check status:
 
 ```bash
-launchctl print gui/$(id -u)/local.llama-server
+launchctl print gui/$(id -u)/llama-server
 ```
 
 Stop/remove it:
 
 ```bash
-launchctl bootout gui/$(id -u)/local.llama-server
+launchctl bootout gui/$(id -u)/llama-server
 ```
 
 > This starts at user login, not before login. For a personal MacBook setup, that is usually the right behavior.
