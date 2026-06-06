@@ -200,8 +200,12 @@ The script runs:
 version = 1
 
 [*]
-c = 32768
+c = 65536
 n-gpu-layers = all
+; Best default on 64 GB Apple Silicon: near-F16 KV quality with ~50% KV RAM.
+; Use lower-bit caches only for extreme context/model-fit experiments.
+cache-type-k = q8_0
+cache-type-v = q8_0
 
 [qwen3.6-27b-q5]
 model = ./models/Qwen3.6-27B-Q5_K_M.gguf
@@ -230,7 +234,8 @@ load-on-startup = false
 | `--host`          | `0.0.0.0`              | Expose the server to other tools/devices on the network   |
 | `--port`          | `12345`                | OpenAI-compatible API port                                |
 | `n-gpu-layers`    | `all`                  | Explicitly offload all possible layers to Metal GPU       |
-| `c`               | `32768`                | Context window; good default for agentic coding           |
+| `c`               | `65536`                | Context window; better default for repo-scale agentic coding on 64 GB M4 Max |
+| `cache-type-k/v`  | `q8_0`                 | Best default KV cache strategy: near-F16 quality with roughly half the KV RAM |
 
 `--models-autoload` is enabled by default, so requests dynamically load the requested preset by model name. `--jinja` and `-fa/--flash-attn` are enabled/auto by default in current llama.cpp, so they are intentionally omitted.
 
@@ -275,17 +280,25 @@ On macOS 26 (Tahoe) + M4 Max, the latest llama.cpp master **automatically uses M
 ./llama.cpp/build/bin/llama-cli -m model.gguf -ngl all -fa on ...
 ```
 
-### 5.3 KV Cache Quantisation (save RAM for bigger contexts)
+### 5.3 KV Cache Quantisation (default strategy)
+
+Use **Q8_0 for both K and V cache by default** on this machine:
 
 ```bash
-# Use Q8_0 KV cache to halve cache memory (vs F16 default)
 ./llama.cpp/build/bin/llama-cli -m model.gguf -ngl all \
   --cache-type-k q8_0 \
   --cache-type-v q8_0 \
-  -c 32768 ...
+  -c 65536 ...
 ```
 
-> Combining flash attention + quantised KV cache lets you push 70B models to 32K context within 64 GB.
+Why this is the default:
+- llama.cpp's built-in default is `f16`, which is the most conservative/compatibility-first choice.
+- `q8_0` cuts KV cache memory by roughly half with negligible quality loss for coding-agent workloads.
+- On a 64 GB M4 Max, the memory saved is better spent on larger context than on F16 KV cache precision.
+
+Do **not** make lower-bit caches the normal default (`q4_0`, `q4_1`, `iq4_nl`, `q5_0`, `q5_1`, or UI-labelled “turbo2/3/4” cache modes). They are useful emergency/experimental profiles for fitting extreme contexts or larger models, but they carry higher risk of long-context degradation, retrieval mistakes, and coding-agent instability.
+
+> Combining flash attention + Q8_0 KV cache is the best daily-driver balance. Drop below Q8_0 only when a specific model/context does not fit.
 
 ### 5.4 Thermal Management
 
@@ -398,8 +411,10 @@ cat > llama-models.ini <<'EOF'
 version = 1
 
 [*]
-c = 32768
+c = 65536
 n-gpu-layers = all
+cache-type-k = q8_0
+cache-type-v = q8_0
 
 [qwen3.6-27b-q5]
 model = ./models/Qwen3.6-27B-Q5_K_M.gguf
