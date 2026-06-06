@@ -63,18 +63,18 @@ With 64 GB unified memory, macOS + desktop use ~4–6 GB, leaving **~58 GB for m
 
 ### Tier 1 — Primary local coding agents ★ Best current fit
 
-| Model                                | Release   | Architecture     | Quant      | GGUF Size | Est. RAM (32K ctx) | Why                                                                    |
-| ------------------------------------ | --------- | ---------------- | ---------- | --------- | ------------------- | ---------------------------------------------------------------------- |
-| **Qwen3.6-27B**                      | Apr 2026  | 27B dense        | Q5_K_M     | ~19 GB    | ~24 GB              | Current local default for serious coding; strong refactoring + tools   |
-| **Qwen3.6-27B**                      | Apr 2026  | 27B dense        | Q4_K_M     | ~17 GB    | ~22 GB              | Best speed/quality fit; 77.2% claimed SWE-bench Verified; 256K ctx     |
-| **Qwen3.6-27B**                      | Apr 2026  | 27B dense        | Q8_0       | ~29 GB    | ~34 GB              | Highest-fidelity local option that still leaves room for long context  |
-| **Qwen3.6-35B-A3B**                 | Apr 2026  | 35B MoE (3B act) | Q4_K_M     | ~21 GB    | ~25 GB              | Fast MoE variant; 73.4% claimed SWE-bench Verified; 51.5 Terminal-Bench |
+| Model                                | Release   | Architecture     | Quant      | GGUF Size | Est. RAM (32K ctx)  | Why                                                                     |
+| ------------------------------------ | --------- | ---------------- | ---------- | --------- | ------------------- | ----------------------------------------------------------------------  |
+| **Qwen3.6-27B**                      | Apr 2026  | 27B dense        | Q5_K_M     | ~19 GB    | ~24 GB              | Current local default for serious coding; strong refactoring + tools    |
+| **Qwen3.6-27B**                      | Apr 2026  | 27B dense        | Q4_K_M     | ~17 GB    | ~22 GB              | Best speed/quality fit; 77.2% claimed SWE-bench Verified; 256K ctx      |
+| **Qwen3.6-27B**                      | Apr 2026  | 27B dense        | Q8_0       | ~29 GB    | ~34 GB              | Highest-fidelity local option that still leaves room for long context   |
+| **Qwen3.6-35B-A3B**                  | Apr 2026  | 35B MoE (3B act) | Q4_K_M     | ~21 GB    | ~25 GB              | Fast MoE variant; 73.4% claimed SWE-bench Verified; 51.5 Terminal-Bench |
 
 > **Top pick:** `Qwen3.6-27B Q5_K_M` if available; otherwise `Qwen3.6-27B Q4_K_M`. It is new enough, compact enough, and has the strongest agentic-coding reputation among models that fit comfortably on your Mac.
 
 ### Tier 2 — Alternative 2026 agentic/tool-calling models
 
-| Model                                | Release   | Architecture     | Quant      | GGUF Size | Est. RAM (32K ctx) | Why                                                                    |
+| Model                                | Release   | Architecture     | Quant      | GGUF Size | Est. RAM (32K ctx)  | Why                                                                    |
 | ------------------------------------ | --------- | ---------------- | ---------- | --------- | ------------------- | ---------------------------------------------------------------------- |
 | **Gemma 4 26B-A4B**                  | Apr 2026  | 26B MoE (4B act) | Q5_K_M     | ~19 GB    | ~24 GB              | Google's latest open model family; native function-calling tokens      |
 | **Gemma 4 26B-A4B**                  | Apr 2026  | 26B MoE (4B act) | Q4_K_M     | ~16 GB    | ~20 GB              | Fast secondary coding agent; 256K ctx; strong agentic workflow support |
@@ -92,7 +92,7 @@ With 64 GB unified memory, macOS + desktop use ~4–6 GB, leaving **~58 GB for m
 | **Step 3.7 Flash**       | May 2026      | Smallest GGUFs are ~62–76 GB before OS/context; too tight / too degraded        |
 | **KAT-Coder-V2**         | Mar 2026      | Very strong paper score, but no practical confirmed GGUF path for this machine  |
 | **Devstral 2 / Small 2** | Dec 2025      | Good agentic model, but excluded by the user's 2026-only rule                   |
-| **Qwen3-Coder-30B-A3B** | 2025          | Good, but excluded because newer Qwen3.6 models replace it                      |
+| **Qwen3-Coder-30B-A3B**  | 2025          | Good, but excluded because newer Qwen3.6 models replace it                      |
 | **Qwen 2.5 Coder**       | 2025          | Superseded by Qwen3.6                                                           |
 | **Gemma 3**              | 2025          | Superseded by Gemma 4                                                           |
 
