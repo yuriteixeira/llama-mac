@@ -25,7 +25,7 @@ git clone git@github.com:yuriteixeira/llama-mac.git
 cd llama-mac
 
 # 2. Install llama.cpp via Homebrew (Metal enabled by default)
-./scripts/build-llama-cpp-metal.sh
+./scripts/install-llama-cpp.sh
 
 # 3. Download models (uses wget by default)
 ./scripts/download-models.sh
@@ -46,16 +46,8 @@ The server exposes an **OpenAI-compatible API** at `http://localhost:12345`.
 
 ### Downloaded models
 
-The `download-models.sh` script fetches the following GGUF files into `models/`:
-
-| Model | File | Approx. Size |
-|---|---|---|
-| Qwen3.6-27B Q5_K_M ★ | `Qwen3.6-27B-Q5_K_M.gguf` | ~18 GB |
-| Qwen3.6-27B Q4_K_M | `Qwen3.6-27B-Q4_K_M.gguf` | ~15 GB |
-| Qwen3.6-35B-A3B MoE | `Qwen3.6-35B-A3B-UD-Q4_K_M.gguf` | ~22 GB |
-| Gemma 4 26B-A4B | `gemma-4-26B-A4B-it-Q4_K_M.gguf` | ~16 GB |
-
-The Qwen3.6-27B Q5_K_M is the **recommended starting point**. It loads faster and leaves room for context window. See [`llama-models.ini`](./llama-models.ini) for all available presets.
+The `download-models.sh` script fetches the selected GGUF model files into `models/`.
+See [`llama-models.ini`](./llama-models.ini) for all available presets.
 
 ## Local helper scripts
 
@@ -63,7 +55,7 @@ At the repository root:
 
 ```text
 scripts/
-├── build-llama-cpp-metal.sh
+├── install-llama-cpp.sh
 ├── download-models-hf.sh
 ├── download-models.sh
 └── run-llama-server.sh
@@ -71,10 +63,10 @@ scripts/
 
 These scripts are local conveniences for:
 
-- installing llama.cpp via Homebrew (Metal enabled by default on Apple Silicon)
-- downloading models
-- running the llama server
-- managing local GGUF model files
+- Installing llama.cpp via Homebrew (Metal enabled by default on Apple Silicon)
+- Downloading models
+- Running the llama server
+- Managing local GGUF model files
 
 ## Local model configuration
 
