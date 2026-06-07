@@ -2,22 +2,77 @@
 set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-MODELS_DIR="${ROOT_DIR}/models"
+MODELS_DIR="$ROOT_DIR/models"
+MANIFEST="$ROOT_DIR/models.txt"
 
-mkdir -p "${MODELS_DIR}"
+MAX_JOBS="${MAX_JOBS:-3}"
+DOWNLOADS=()
 
-# ★ Top pick: Qwen3.6-27B Q5_K_M
-wget -c "https://huggingface.co/unsloth/Qwen3.6-27B-GGUF/resolve/main/Qwen3.6-27B-Q5_K_M.gguf" \
-  -P "${MODELS_DIR}"
+# Parse models.txt — one URL per line, skip blanks and comments
+while IFS= read -r url; do
+  [[ "$url" =~ ^[[:space:]]*# ]] && continue
+  [[ -z "${url// /}" ]] && continue
+  url="${url%%[[:space:]]}"  # trim trailing whitespace
 
-# Fallback / faster: Qwen3.6-27B Q4_K_M
-wget -c "https://huggingface.co/unsloth/Qwen3.6-27B-GGUF/resolve/main/Qwen3.6-27B-Q4_K_M.gguf" \
-  -P "${MODELS_DIR}"
+  # Extract filename from URL
+  filename="${url##*/}"
+  filename="${filename%%\?*}"  # strip query string
 
-# Qwen3.6-35B-A3B (MoE)
-wget -c "https://huggingface.co/unsloth/Qwen3.6-35B-A3B-GGUF/resolve/main/Qwen3.6-35B-A3B-UD-Q4_K_M.gguf" \
-  -P "${MODELS_DIR}"
+  # Derive dest path: models/<org>/<filename>
+  # e.g. https://huggingface.co/unsloth/Qwen3.6-27B-GGUF/resolve/main/<file>
+  #      → models/unsloth/<file>
+  path_without_file="${url%%/resolve/*}"
+  # path_without_file = https://huggingface.co/unsloth/Qwen3.6-27B-GGUF
+  # Take the last two segments as the repo dir
+  repo_dir="${path_without_file##*/}"       # Qwen3.6-27B-GGUF
+  org="${path_without_file%/*}"             # https://huggingface.co/unsloth
+  org="${org##*/}"                          # unsloth
 
-# Gemma 4 26B-A4B it
-wget -c "https://huggingface.co/ggml-org/gemma-4-26B-A4B-it-GGUF/resolve/main/gemma-4-26B-A4B-it-Q4_K_M.gguf" \
-  -P "${MODELS_DIR}"
+  dest="$MODELS_DIR/$org/$filename"
+  DOWNLOADS+=("$dest"$'\t'"$url")
+done < "$MANIFEST"
+
+download_one() {
+  local spec="$1"
+  local dest="${spec%%$'\t'*}"
+  local url="${spec#*$'\t'}"
+
+  mkdir -p "$(dirname "$dest")"
+
+  if [[ -f "$dest" ]]; then
+    echo "  [SKIP] $(basename "$dest") already exists"
+    return 0
+  fi
+
+  echo "  [DOWN] $dest"
+  wget -c "$url" -O "$dest"
+}
+
+export -f download_one
+
+run_downloads() {
+  local -a pids=()
+  local -a specs=()
+
+  for spec in "${DOWNLOADS[@]}"; do
+    specs+=("$spec")
+  done
+
+  for spec in "${specs[@]}"; do
+    download_one "$spec" &
+    pids+=($!)
+
+    if (( ${#pids[@]} >= MAX_JOBS )); then
+      for pid in "${pids[@]}"; do
+        wait "$pid"
+      done
+      pids=()
+    fi
+  done
+
+  for pid in "${pids[@]}"; do
+    wait "$pid"
+  done
+}
+
+run_downloads

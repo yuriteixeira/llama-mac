@@ -46,8 +46,11 @@ The server exposes an **OpenAI-compatible API** at `http://localhost:12345`.
 
 ### Downloaded models
 
-The `download-models.sh` script fetches the selected GGUF model files into `models/`.
-See [`llama-models.ini`](./llama-models.ini) for all available presets.
+Models are downloaded using `./scripts/download-models.sh` based on the curated list in `./models.txt`.
+Model presets for `llama-server` are defined in `./llama-models.ini`.
+They can be updated based on the models downloaded if you run `./scripts/update-presets.sh`.
+
+Before updating `./models.txt` with a new model, make sure they are not deny-listed in `./DO-NOT-DOWNLOAD-THESE-MODELS.md`. Make sure this machine's RAM can fit all the necessary data to run the model correctly (the model itself, context, engine, etc).
 
 ## Local helper scripts
 
@@ -64,8 +67,10 @@ scripts/
 These scripts are local conveniences for:
 
 - Installing llama.cpp via Homebrew (Metal enabled by default on Apple Silicon)
-- Downloading models
+- Downloading models (from `models.txt` manifest)
 - Running the llama server
+- Updating presets from local models (`update-presets.sh`)
+- Auditing model inventory (`audit-models.sh`)
 - Managing local GGUF model files
 
 ## Local model configuration
