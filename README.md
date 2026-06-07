@@ -47,7 +47,7 @@ The server exposes an **OpenAI-compatible API** at `http://localhost:12345`.
 ### Downloaded models
 
 Models are downloaded using `./scripts/download-models.sh` based on the curated list in `./models.txt`.
-Model presets for `llama-server` are defined in `./llama-models.ini`.
+Model presets for `llama-server` are defined in `./model-presets.ini`.
 They can be updated based on the models downloaded if you run `./scripts/update-presets.sh`.
 
 Before updating `./models.txt` with a new model, make sure they are not deny-listed in `./DO-NOT-DOWNLOAD-THESE-MODELS.md`. Make sure this machine's RAM can fit all the necessary data to run the model correctly (the model itself, context, engine, etc).
@@ -75,7 +75,7 @@ These scripts are local conveniences for:
 
 ## Local model configuration
 
-The root-level [`llama-models.ini`](./llama-models.ini) defines model aliases and runtime defaults.
+The root-level [`model-presets.ini`](./model-presets.ini) defines model aliases and runtime defaults.
 
 Global defaults:
 
@@ -104,7 +104,7 @@ Each section gives a model a short alias and points to a GGUF file under `models
 This repository is a thin local orchestration layer around llama.cpp (installed via Homebrew).
 
 ```text
-scripts/ + llama-models.ini
+scripts/ + model-presets.ini
         ↓
 local models in models/
         ↓

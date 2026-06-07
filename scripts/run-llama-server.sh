@@ -5,7 +5,7 @@ set -euo pipefail
 # resolve shared libraries correctly wherever this repository is cloned.
 
 exec llama-server \
-  --models-preset "$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)/llama-models.ini" \
+  --models-preset "$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)/model-presets.ini" \
   --models-max 1 \
   --host 0.0.0.0 \
   --port 12345

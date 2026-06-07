@@ -4,7 +4,7 @@ set -euo pipefail
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 MODELS_DIR="$ROOT_DIR/models"
 MANIFEST="$ROOT_DIR/models.txt"
-PRESETS="$ROOT_DIR/llama-models.ini"
+PRESETS="$ROOT_DIR/model-presets.ini"
 
 usage() {
   cat <<'EOF'
@@ -13,10 +13,10 @@ Usage: scripts/audit-models.sh
 Audits the model inventory across:
   - ./models directory (.gguf files, recursively)
   - ./models.txt download manifest
-  - ./llama-models.ini preset model entries
+  - ./model-presets.ini preset model entries
 
 Output columns:
-  name | in ./models | in ./models.txt | in ./llama-models.ini
+  name | in ./models | in ./models.txt | in ./model-presets.ini
 EOF
 }
 
@@ -132,11 +132,11 @@ print_row() {
 }
 
 print_border '┌' '┬' '┐'
-print_row 'name' 'in ./models' 'in ./models.txt' 'in ./llama-models.ini'
+print_row 'name' 'in ./models' 'in ./models.txt' 'in ./model-presets.ini'
 print_border '├' '┼' '┤'
 
 if [[ ${#all_models[@]} -eq 0 ]]; then
-  print_row 'No models found in ./models, ./models.txt, or ./llama-models.ini.' '' '' ''
+  print_row 'No models found in ./models, ./models.txt, or ./model-presets.ini.' '' '' ''
   print_border '└' '┴' '┘'
   exit 0
 fi

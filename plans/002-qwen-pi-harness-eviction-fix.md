@@ -142,7 +142,7 @@ Keep server-level settings model-neutral, but add `--kv-unified` for stable slot
 
 ```bash
 exec "${LLAMA_BIN_DIR}/llama-server" \
-  --models-preset "${ROOT_DIR}/llama-models.ini" \
+  --models-preset "${ROOT_DIR}/model-presets.ini" \
   --models-max 1 \
   --parallel 1 \
   --kv-unified \
@@ -150,7 +150,7 @@ exec "${LLAMA_BIN_DIR}/llama-server" \
   --port 12345
 ```
 
-### Change `llama-models.ini`
+### Change `model-presets.ini`
 
 Disable reasoning on the Qwen 27B presets used by Pi, and keep explicit `*-think` aliases for manual chat:
 

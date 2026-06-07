@@ -2,7 +2,7 @@
 set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-PRESETS="$ROOT_DIR/llama-models.ini"
+PRESETS="$ROOT_DIR/model-presets.ini"
 MODELS_DIR="$ROOT_DIR/models"
 
 # Collect all .gguf filenames currently declared in preset sections (not commented out)

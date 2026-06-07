@@ -182,7 +182,7 @@ The script runs:
 
 ```bash
 llama-server \
-  --models-preset ./llama-models.ini \
+  --models-preset ./model-presets.ini \
   --models-max 1 \
   --host 0.0.0.0 \
   --port 12345
@@ -190,7 +190,7 @@ llama-server \
 
 All model-performance settings live in the `[*]` (global) section of the INI file. The router cascades these to child processes via `LLAMA_ARG_*` environment variables — CLI args are kept minimal (router control only).
 
-`llama-models.ini`:
+`model-presets.ini`:
 
 ```ini
 version = 1
@@ -252,7 +252,7 @@ model = ./models/gemma-4-26B-A4B-it-Q4_K_M.gguf
 
 | Flag              | Value                  | Why                                                       |
 | ----------------- | ---------------------- | --------------------------------------------------------- |
-| `--models-preset` | `./llama-models.ini`   | Defines available models and shared runtime settings      |
+| `--models-preset` | `./model-presets.ini`   | Defines available models and shared runtime settings      |
 | `--models-max`    | `1`                    | Allow only one model to be loaded at a time               |
 | `--host`          | `0.0.0.0`              | Expose the server to other tools/devices on the network   |
 | `--port`          | `12345`                | OpenAI-compatible API port                                |
@@ -308,7 +308,7 @@ On macOS 26 (Tahoe) + M4 Max, the latest Homebrew llama.cpp **automatically uses
 
 ### 5.2 Flash Attention
 
-Flash Attention is enabled via `fa = on` in the `[*]` section of `llama-models.ini`. This enables the Metal Flash Attention kernel: faster prefill at long contexts, smaller memory footprint per token, and a prerequisite for KV cache quantization. Always keep this on for Apple Silicon.
+Flash Attention is enabled via `fa = on` in the `[*]` section of `model-presets.ini`. This enables the Metal Flash Attention kernel: faster prefill at long contexts, smaller memory footprint per token, and a prerequisite for KV cache quantization. Always keep this on for Apple Silicon.
 
 ### 5.3 KV Cache Quantisation (default strategy)
 
@@ -453,7 +453,7 @@ hf download unsloth/Qwen3.6-27B-GGUF \
   Qwen3.6-27B-Q5_K_M.gguf --local-dir models/
 
 # 3. Create model presets (performance flags in [*] global section)
-cat > llama-models.ini <<'EOF'
+cat > model-presets.ini <<'EOF'
 version = 1
 
 [*]
