@@ -1,10 +1,11 @@
-# Local llama.cpp Workspace
+# Local LLM Inference Workspace
 
-This repository is a local setup for running [`llama.cpp`](https://github.com/ggml-org/llama.cpp) with local model files, configuration, and helper scripts.
+## Overview
 
-llama.cpp is installed via **Homebrew** — no submodule, no build from source. This README documents only the local workspace around it.
+This repository is a local workspace for running [`llama.cpp`](https://github.com/ggml-org/llama.cpp) via **Homebrew**, with local model files, configuration, and helper scripts.
 
-## Prerequisites
+
+## Assumptions & Requirements
 
 - **macOS on Apple Silicon** (M1/M2/M3/M4) — Metal GPU acceleration requires it
 - **Homebrew**: [`brew.sh`](https://brew.sh)
@@ -12,105 +13,73 @@ llama.cpp is installed via **Homebrew** — no submodule, no build from source. 
   ```bash
   xcode-select --install
   ```
-- **Disk space**: 30–50 GB for models (each GGUF file is 10–20 GB)
-- **RAM**: 32 GB minimum; 64 GB recommended (the config defaults use `q8_0` cache quality for near-F16 KV performance)
+- **Disk space**: 30–50 GB for models (each GGUF file is often 10–20 GB)
+- **RAM**: 32 GB minimum; 64 GB recommended
 
-## Quick Start
+Tuned for:
+- **Local workstation**: models are loaded as needed, typically one at a time
+- **GPU**: Apple Silicon Metal acceleration
+- **Workspace paths**: repository-relative paths for portability across machines
 
-Run these steps in order:
+## Building & Using
+
+Since this project is Homebrew-based, setup is mostly install scripts + model downloads.
+
+**Cloning:**
 
 ```bash
-# 1. Clone the repository
 git clone git@github.com:yuriteixeira/llama-mac.git
 cd llama-mac
+```
 
-# 2. Install llama.cpp via Homebrew (Metal enabled by default)
+**Installing llama.cpp:**
+
+```bash
 ./scripts/install-llama-cpp.sh
+```
 
-# 3. Download models (uses wget by default)
+If you want the bleeding-edge HEAD version of llama.cpp instead of the latest Homebrew stable tag:
+
+```bash
+brew uninstall llama.cpp
+brew install llama.cpp --HEAD
+```
+
+**Downloading models:**
+
+```bash
 ./scripts/download-models.sh
-# Alternative: ./scripts/download-models-hf.sh (requires `hf` CLI + Hugging Face token)
+```
 
-# 4. Start the server
+Alternative Hugging Face-based download:
+
+```bash
+./scripts/download-models-hf.sh
+```
+
+**Starting the service:**
+
+```bash
 ./scripts/run-llama-server.sh
 ```
 
 The server exposes an **OpenAI-compatible API** at `http://localhost:12345`.
 
-> **Tip**: If you want the bleeding-edge HEAD version of llama.cpp instead of the
-> latest Homebrew stable tag, install it first:
-> ```bash
-> brew uninstall llama.cpp
-> brew install llama.cpp --HEAD
-> ```
+**Using the models:**
 
-### Downloaded models
+My recommendation is https://pi.dev + its [pi-llama-cpp](https://pi.dev/packages/pi-llama-cpp) extension, which will allow to load any models configured in `./model-presets.ini`
 
-Models are downloaded using `./scripts/download-models.sh` based on the curated list in `./models.txt`.
-Model presets for `llama-server` are defined in `./model-presets.ini`.
-They can be updated based on the models downloaded if you run `./scripts/update-presets.sh`.
 
-Before updating `./models.txt` with a new model, make sure they are not deny-listed in `./DO-NOT-DOWNLOAD-THESE-MODELS.md`. Make sure this machine's RAM can fit all the necessary data to run the model correctly (the model itself, context, engine, etc).
+## Managing Models & Presets
 
-## Local helper scripts
+- Models are downloaded using `./scripts/download-models.sh` based on the curated list in `./models.txt`
+- Model presets for `llama-server` are defined in `./model-presets.ini`
+- They can be updated based on the models downloaded if you run `./scripts/update-presets.sh`
+- Before updating `./models.txt` with a new model, make sure they are not deny-listed in `./DO-NOT-DOWNLOAD-THESE-MODELS.md`
+- Make sure this machine's RAM can fit all the necessary data to run the model correctly (the model itself, context, engine, etc)
 
-At the repository root:
+## Pro-tips
 
-```text
-scripts/
-├── install-llama-cpp.sh
-├── download-models-hf.sh
-├── download-models.sh
-└── run-llama-server.sh
-```
-
-These scripts are local conveniences for:
-
-- Installing llama.cpp via Homebrew (Metal enabled by default on Apple Silicon)
-- Downloading models (from `models.txt` manifest)
-- Running the llama server
-- Updating presets from local models (`update-presets.sh`)
-- Auditing model inventory (`audit-models.sh`)
-- Managing local GGUF model files
-
-## Local model configuration
-
-The root-level [`model-presets.ini`](./model-presets.ini) defines model aliases and runtime defaults.
-
-Global defaults:
-
-```ini
-[*]
-c = 65536
-n-gpu-layers = all
-```
-
-This means configured models default to:
-
-- `c = 65536`: 64k token context size
-- `n-gpu-layers = all`: offload all possible layers to GPU
-
-Example model entry:
-
-```ini
-[fast-detailed-qwen3.6-35b-a3b-q4]
-model = ./models/Qwen3.6-35B-A3B-UD-Q4_K_M.gguf
-```
-
-Each section gives a model a short alias and points to a GGUF file under `models/`.
-
-## Architecture
-
-This repository is a thin local orchestration layer around llama.cpp (installed via Homebrew).
-
-```text
-scripts/ + model-presets.ini
-        ↓
-local models in models/
-        ↓
-Homebrew llama.cpp server runtime
-```
-
-The project-specific pieces are the configuration file, local model storage, and helper scripts. Inference, model loading, server behavior, and backend execution are provided by the Homebrew `llama.cpp` package.
-
-All workspace paths should be repository-relative so the setup remains portable across machines.
+- Use `./scripts/audit-models.sh` to keep the local model inventory tidy
+- If performance is poor, first check model size, RAM pressure, and whether Metal acceleration is actually being used
+- Keep model paths and preset entries repository-relative so the setup stays portable
