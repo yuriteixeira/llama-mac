@@ -25,22 +25,30 @@ if [[ "${1:-}" == "-h" || "${1:-}" == "--help" ]]; then
   exit 0
 fi
 
-declare -A in_models_dir=()
-declare -A in_manifest=()
-declare -A in_presets=()
-declare -A all_models=()
+# Keep newline-delimited sets instead of associative arrays so this script works
+# with macOS' default Bash 3.2.
+in_models_dir=''
+in_manifest=''
+in_presets=''
+all_models=''
 
 add_model() {
   local name="$1"
   [[ -z "$name" ]] && return
-  all_models["$name"]=1
+  all_models="${all_models}${name}"$'\n'
+}
+
+contains_model() {
+  local list="$1"
+  local name="$2"
+  printf '%s' "$list" | grep -Fxq -- "$name"
 }
 
 # Local inventory: recursively list downloaded GGUF files under ./models.
 if [[ -d "$MODELS_DIR" ]]; then
   while IFS= read -r model_path; do
     name="${model_path##*/}"
-    in_models_dir["$name"]=1
+    in_models_dir="${in_models_dir}${name}"$'\n'
     add_model "$name"
   done < <(find "$MODELS_DIR" -type f -name '*.gguf' 2>/dev/null | sort)
 fi
@@ -58,7 +66,7 @@ if [[ -f "$MANIFEST" ]]; then
     name="${name%%\?*}"
 
     [[ "$name" == *.gguf ]] || continue
-    in_manifest["$name"]=1
+    in_manifest="${in_manifest}${name}"$'\n'
     add_model "$name"
   done < "$MANIFEST"
 fi
@@ -78,7 +86,7 @@ if [[ -f "$PRESETS" ]]; then
       name="${model_path##*/}"
 
       [[ "$name" == *.gguf ]] || continue
-      in_presets["$name"]=1
+      in_presets="${in_presets}${name}"$'\n'
       add_model "$name"
     fi
   done < "$PRESETS"
@@ -89,9 +97,9 @@ yes_no() {
   local name="$2"
 
   case "$set_name" in
-    models) [[ -n "${in_models_dir[$name]+_}" ]] ;;
-    manifest) [[ -n "${in_manifest[$name]+_}" ]] ;;
-    presets) [[ -n "${in_presets[$name]+_}" ]] ;;
+    models) contains_model "$in_models_dir" "$name" ;;
+    manifest) contains_model "$in_manifest" "$name" ;;
+    presets) contains_model "$in_presets" "$name" ;;
     *) return 1 ;;
   esac
 }
@@ -135,7 +143,7 @@ print_border '┌' '┬' '┐'
 print_row 'name' 'in ./models' 'in ./models.txt' 'in ./model-presets.ini'
 print_border '├' '┼' '┤'
 
-if [[ ${#all_models[@]} -eq 0 ]]; then
+if [[ -z "$all_models" ]]; then
   print_row 'No models found in ./models, ./models.txt, or ./model-presets.ini.' '' '' ''
   print_border '└' '┴' '┘'
   exit 0
@@ -151,6 +159,6 @@ while IFS= read -r name; do
   if yes_no presets "$name"; then presets_value='yes'; fi
 
   print_row "$name" "$models_value" "$manifest_value" "$presets_value"
-done < <(printf '%s\n' "${!all_models[@]}" | sort)
+done < <(printf '%s' "$all_models" | sort -u)
 
 print_border '└' '┴' '┘'

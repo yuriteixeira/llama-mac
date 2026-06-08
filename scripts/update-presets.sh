@@ -5,9 +5,15 @@ ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 PRESETS="$ROOT_DIR/model-presets.ini"
 MODELS_DIR="$ROOT_DIR/models"
 
-# Collect all .gguf filenames currently declared in preset sections (not commented out)
-# Extracts the basename of the model path from active [N-name] sections
-declare -A declared
+# Collect all .gguf filenames currently declared in preset sections (not commented out).
+# Keep a newline-delimited set instead of an associative array so this script
+# works with macOS' default Bash 3.2.
+declared=''
+contains_declared() {
+  local filename="$1"
+  printf '%s' "$declared" | grep -Fxq -- "$filename"
+}
+
 while IFS= read -r line; do
   # Skip comments and empty lines
   [[ "$line" =~ ^[[:space:]]*[\;#] ]] && continue
@@ -17,7 +23,7 @@ while IFS= read -r line; do
   if [[ "$line" =~ ^model[[:space:]]*=[[:space:]]*(.+) ]]; then
     filepath="${BASH_REMATCH[1]}"
     filename="${filepath##*/}"
-    declared["$filename"]=1
+    declared="${declared}${filename}"$'\n'
   fi
 done < "$PRESETS"
 
@@ -25,7 +31,7 @@ done < "$PRESETS"
 new_models=()
 while IFS= read -r gguf; do
   filename="${gguf##*/}"
-  if [[ -z "${declared[$filename]+_}" ]]; then
+  if ! contains_declared "$filename"; then
     new_models+=("$gguf")
   fi
 done < <(find "$MODELS_DIR" -name '*.gguf' -type f 2>/dev/null | sort)
@@ -56,12 +62,13 @@ done < "$PRESETS"
     name_slug="${filename%.gguf}"
     # Strip common prefixes/suffixes for a cleaner name
     name_slug="${name_slug%%-[A-Z]*}"  # remove -UD, -Q4_K_M, etc.
-    name_slug="${name_slug,,}"          # lowercase
+    name_slug="$(printf '%s' "$name_slug" | tr '[:upper:]' '[:lower:]')" # lowercase
     name_slug="${name_slug// /-}"       # spaces to dashes
     name_slug="${name_slug//_/}"        # remove underscores
 
     echo "[$next_num-$name_slug]"
-    echo "model = $gguf"
+    relative_gguf="./${gguf#$ROOT_DIR/}"
+    echo "model = $relative_gguf"
     echo ""
     (( next_num++ ))
   done
