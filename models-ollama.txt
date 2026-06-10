@@ -1,0 +1,12 @@
+# MLX model tags for Ollama
+# One tag per line — run ./scripts/download-models-ollama.sh to pull them.
+# Current local inventory (query: curl localhost:11434/api/tags):
+#   qwen3.6:27b-coding-mxfp8 (~31 GB, MXFP8, vision+thinking+tools)
+#   gemma4:31b-mxfp8 (~32 GB, MXFP8, tools+thinking)
+#   qwen3.6:35b-a3b-coding-mxfp8 (~38 GB, MXFP8, vision+thinking+tools)
+#
+# To pull additional tags, see: https://ollama.com/search
+
+qwen3.6:27b-coding-mxfp8
+gemma4:31b-mxfp8
+qwen3.6:35b-a3b-coding-mxfp8
